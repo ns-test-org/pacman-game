@@ -163,18 +163,28 @@ export default function PacmanGame() {
   }, [pacmanPos, gameStarted, dots]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-      <h1 className="text-4xl font-bold text-yellow-400 mb-4">PACMAN</h1>
-      <div className="text-white text-2xl mb-4">Score: {score}</div>
+    <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
+      {/* Liquid animated background */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="absolute inset-0 opacity-30">
+          <div className="liquid-blob liquid-blob-1"></div>
+          <div className="liquid-blob liquid-blob-2"></div>
+          <div className="liquid-blob liquid-blob-3"></div>
+        </div>
+      </div>
+
+      <h1 className="text-4xl font-bold text-yellow-400 mb-4 relative z-10">PACMAN</h1>
+      <div className="text-white text-2xl mb-4 relative z-10">Score: {score}</div>
       <canvas 
         ref={canvasRef}
-        className="border-4 border-blue-600 rounded-lg shadow-2xl"
+        className="border-4 border-blue-600 rounded-lg shadow-2xl relative z-10"
       />
-      <div className="mt-6 text-white text-center">
+      <div className="mt-6 text-white text-center relative z-10">
         <p className="text-lg">Use Arrow Keys to Move</p>
         <p className="text-sm text-gray-400 mt-2">Press Space to Start</p>
       </div>
     </div>
   );
 }
+
 

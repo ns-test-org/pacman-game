@@ -175,10 +175,15 @@ export default function PacmanGame() {
 
       <h1 className="text-4xl font-bold text-yellow-400 mb-4 relative z-10">PACMAN</h1>
       <div className="text-white text-2xl mb-4 relative z-10">Score: {score}</div>
-      <canvas 
-        ref={canvasRef}
-        className="border-4 border-blue-600 rounded-lg shadow-2xl relative z-10"
-      />
+      <div className="relative z-10" style={{
+        filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.5)) drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4)) drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3))',
+        transform: 'translateZ(50px)',
+      }}>
+        <canvas 
+          ref={canvasRef}
+          className="border-4 border-blue-600 rounded-lg"
+        />
+      </div>
       <div className="mt-6 text-white text-center relative z-10">
         <p className="text-lg">Use Arrow Keys to Move</p>
         <p className="text-sm text-gray-400 mt-2">Press Space to Start</p>
@@ -186,5 +191,6 @@ export default function PacmanGame() {
     </div>
   );
 }
+
 
 

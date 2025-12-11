@@ -16,13 +16,26 @@ export default function PacmanGame() {
     canvas.width = 600;
     canvas.height = 600;
 
-    // Draw initial game board
+    // Draw game board
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#FFD700';
-    ctx.font = '24px Arial';
-    ctx.fillText('Pacman Game Loading...', 150, 300);
+    // Draw Pacman
+    ctx.fillStyle = '#FFFF00';
+    ctx.beginPath();
+    ctx.arc(300, 300, 20, 0.2 * Math.PI, 1.8 * Math.PI);
+    ctx.lineTo(300, 300);
+    ctx.fill();
+
+    // Draw some dots
+    ctx.fillStyle = '#FFB897';
+    for (let x = 50; x < 600; x += 50) {
+      for (let y = 50; y < 600; y += 50) {
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
   }, []);
 
   return (
@@ -39,4 +52,5 @@ export default function PacmanGame() {
     </div>
   );
 }
+
 

@@ -290,10 +290,11 @@ export default function PacmanGame() {
         lastGhostMoveTime.current = timestamp;
       }
       
-      // Check collision with ghosts
-      ghosts.forEach(ghost => {
+      // Check collision with ghosts (after ghost movement)
+      const currentGhosts = ghosts;
+      currentGhosts.forEach(ghost => {
         if (ghost.x === pacmanPos.x && ghost.y === pacmanPos.y) {
-          if (frightenedMode) {
+          if (ghost.mode === 'frightened') {
             // Eat ghost
             setScore(s => s + 200);
             // Reset ghost to ghost house
@@ -419,6 +420,56 @@ export default function PacmanGame() {
       ctx.closePath();
       ctx.fill();
       
+      // Draw unique hats for each ghost
+      if (ghost.mode !== 'frightened') {
+        const centerX = ghost.x * CELL_SIZE + CELL_SIZE / 2;
+        const centerY = ghost.y * CELL_SIZE + CELL_SIZE / 2;
+        
+        switch (ghost.name) {
+          case 'Blinky': // Crown
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 8, centerY - 10);
+            ctx.lineTo(centerX - 6, centerY - 14);
+            ctx.lineTo(centerX - 3, centerY - 11);
+            ctx.lineTo(centerX, centerY - 15);
+            ctx.lineTo(centerX + 3, centerY - 11);
+            ctx.lineTo(centerX + 6, centerY - 14);
+            ctx.lineTo(centerX + 8, centerY - 10);
+            ctx.lineTo(centerX - 8, centerY - 10);
+            ctx.fill();
+            break;
+            
+          case 'Pinky': // Bow
+            ctx.fillStyle = '#FF69B4';
+            ctx.beginPath();
+            ctx.arc(centerX - 5, centerY - 12, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX + 5, centerY - 12, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillRect(centerX - 2, centerY - 13, 4, 3);
+            break;
+            
+          case 'Inky': // Top hat
+            ctx.fillStyle = '#000';
+            ctx.fillRect(centerX - 8, centerY - 11, 16, 2);
+            ctx.fillRect(centerX - 5, centerY - 18, 10, 7);
+            ctx.strokeStyle = '#00FFFF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(centerX - 5, centerY - 15, 10, 1);
+            break;
+            
+          case 'Clyde': // Baseball cap
+            ctx.fillStyle = '#FF8C00';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - 11, 8, 4, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillRect(centerX - 2, centerY - 16, 8, 5);
+            break;
+        }
+      }
+      
       // Ghost eyes
       ctx.fillStyle = '#FFF';
       ctx.beginPath();
@@ -438,7 +489,7 @@ export default function PacmanGame() {
       );
       ctx.fill();
       
-      if (!frightenedMode) {
+      if (ghost.mode !== 'frightened') {
         ctx.fillStyle = '#000';
         ctx.beginPath();
         ctx.arc(
@@ -519,6 +570,8 @@ export default function PacmanGame() {
     </div>
   );
 }
+
+
 
 
 

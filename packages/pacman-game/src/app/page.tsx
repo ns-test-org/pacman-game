@@ -2,10 +2,30 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+const CELL_SIZE = 30;
+const GRID_WIDTH = 20;
+const GRID_HEIGHT = 20;
+
 export default function PacmanGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [pacmanPos, setPacmanPos] = useState({ x: 300, y: 300 });
+  const [pacmanPos, setPacmanPos] = useState({ x: 1, y: 1 });
+  const [direction, setDirection] = useState({ x: 0, y: 0 });
+  const [score, setScore] = useState(0);
+  const [dots, setDots] = useState<Set<string>>(new Set());
+  const animationRef = useRef<number>();
+  const lastMoveTime = useRef<number>(0);
+
+  // Initialize dots
+  useEffect(() => {
+    const initialDots = new Set<string>();
+    for (let x = 1; x < GRID_WIDTH - 1; x++) {
+      for (let y = 1; y < GRID_HEIGHT - 1; y++) {
+        initialDots.add(`${x},${y}`);
+      }
+    }
+    setDots(initialDots);
+  }, []);
 
   // Handle keyboard input
   useEffect(() => {
@@ -17,37 +37,74 @@ export default function PacmanGame() {
 
       if (!gameStarted) return;
 
-      setPacmanPos(prev => {
-        let newX = prev.x;
-        let newY = prev.y;
+      e.preventDefault();
 
-        switch (e.key) {
-          case 'ArrowUp':
-            newY = prev.y - 20;
-            break;
-          case 'ArrowDown':
-            newY = prev.y + 20;
-            break;
-          case 'ArrowLeft':
-            newX = prev.x - 20;
-            break;
-          case 'ArrowRight':
-            newX = prev.x + 20;
-            break;
-        }
-
-        // Keep Pacman within bounds
-        newX = Math.max(20, Math.min(580, newX));
-        newY = Math.max(20, Math.min(580, newY));
-
-        return { x: newX, y: newY };
-      });
+      switch (e.key) {
+        case 'ArrowUp':
+          setDirection({ x: 0, y: -1 });
+          break;
+        case 'ArrowDown':
+          setDirection({ x: 0, y: 1 });
+          break;
+        case 'ArrowLeft':
+          setDirection({ x: -1, y: 0 });
+          break;
+        case 'ArrowRight':
+          setDirection({ x: 1, y: 0 });
+          break;
+      }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameStarted]);
 
+  // Game loop with smooth animation
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const gameLoop = (timestamp: number) => {
+      const deltaTime = timestamp - lastMoveTime.current;
+      
+      // Move every 150ms for smooth gameplay
+      if (deltaTime > 150) {
+        setPacmanPos(prev => {
+          const newX = prev.x + direction.x;
+          const newY = prev.y + direction.y;
+
+          // Keep within bounds
+          const boundedX = Math.max(0, Math.min(GRID_WIDTH - 1, newX));
+          const boundedY = Math.max(0, Math.min(GRID_HEIGHT - 1, newY));
+
+          // Check if dot exists at new position
+          const dotKey = `${boundedX},${boundedY}`;
+          if (dots.has(dotKey)) {
+            setDots(prev => {
+              const newDots = new Set(prev);
+              newDots.delete(dotKey);
+              return newDots;
+            });
+            setScore(s => s + 10);
+          }
+
+          return { x: boundedX, y: boundedY };
+        });
+        
+        lastMoveTime.current = timestamp;
+      }
+
+      animationRef.current = requestAnimationFrame(gameLoop);
+    };
+
+    animationRef.current = requestAnimationFrame(gameLoop);
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [gameStarted, direction, dots]);
+
+  // Render canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -56,29 +113,43 @@ export default function PacmanGame() {
     if (!ctx) return;
 
     // Set canvas size
-    canvas.width = 600;
-    canvas.height = 600;
+    canvas.width = GRID_WIDTH * CELL_SIZE;
+    canvas.height = GRID_HEIGHT * CELL_SIZE;
 
     // Draw game board
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Draw dots
+    ctx.fillStyle = '#FFB897';
+    dots.forEach(dotKey => {
+      const [x, y] = dotKey.split(',').map(Number);
+      ctx.beginPath();
+      ctx.arc(
+        x * CELL_SIZE + CELL_SIZE / 2,
+        y * CELL_SIZE + CELL_SIZE / 2,
+        3,
+        0,
+        2 * Math.PI
+      );
+      ctx.fill();
+    });
+
     // Draw Pacman
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
-    ctx.arc(pacmanPos.x, pacmanPos.y, 20, 0.2 * Math.PI, 1.8 * Math.PI);
-    ctx.lineTo(pacmanPos.x, pacmanPos.y);
+    ctx.arc(
+      pacmanPos.x * CELL_SIZE + CELL_SIZE / 2,
+      pacmanPos.y * CELL_SIZE + CELL_SIZE / 2,
+      CELL_SIZE / 2 - 2,
+      0.2 * Math.PI,
+      1.8 * Math.PI
+    );
+    ctx.lineTo(
+      pacmanPos.x * CELL_SIZE + CELL_SIZE / 2,
+      pacmanPos.y * CELL_SIZE + CELL_SIZE / 2
+    );
     ctx.fill();
-
-    // Draw some dots
-    ctx.fillStyle = '#FFB897';
-    for (let x = 50; x < 600; x += 50) {
-      for (let y = 50; y < 600; y += 50) {
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    }
 
     // Draw start overlay
     if (!gameStarted) {
@@ -89,11 +160,12 @@ export default function PacmanGame() {
       ctx.textAlign = 'center';
       ctx.fillText('Press SPACE to Start', canvas.width / 2, canvas.height / 2);
     }
-  }, [pacmanPos, gameStarted]);
+  }, [pacmanPos, gameStarted, dots]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-      <h1 className="text-4xl font-bold text-yellow-400 mb-8">PACMAN</h1>
+      <h1 className="text-4xl font-bold text-yellow-400 mb-4">PACMAN</h1>
+      <div className="text-white text-2xl mb-4">Score: {score}</div>
       <canvas 
         ref={canvasRef}
         className="border-4 border-blue-600 rounded-lg shadow-2xl"
@@ -105,6 +177,10 @@ export default function PacmanGame() {
     </div>
   );
 }
+
+
+
+
 
 
 

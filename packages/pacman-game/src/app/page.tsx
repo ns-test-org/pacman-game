@@ -3,25 +3,67 @@
 import { useEffect, useRef, useState } from 'react';
 
 const CELL_SIZE = 30;
-const GRID_WIDTH = 20;
-const GRID_HEIGHT = 20;
+const GRID_WIDTH = 28;
+const GRID_HEIGHT = 31;
+
+// Classic Pac-Man maze layout (1 = wall, 0 = path)
+const MAZE = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+  [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+  [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+  [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,1,1,1,0,0,1,1,1,0,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,1,1],
+  [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+  [1,1,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+  [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+  [1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1],
+  [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+  [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+  [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+  [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+  [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+function isWall(x: number, y: number): boolean {
+  if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) return true;
+  return MAZE[y][x] === 1;
+}
 
 export default function PacmanGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [pacmanPos, setPacmanPos] = useState({ x: 1, y: 1 });
+  const [pacmanPos, setPacmanPos] = useState({ x: 14, y: 23 });
   const [direction, setDirection] = useState({ x: 0, y: 0 });
   const [score, setScore] = useState(0);
   const [dots, setDots] = useState<Set<string>>(new Set());
   const animationRef = useRef<number>(0);
   const lastMoveTime = useRef<number>(0);
 
-  // Initialize dots
+  // Initialize dots on all non-wall cells
   useEffect(() => {
     const initialDots = new Set<string>();
-    for (let x = 1; x < GRID_WIDTH - 1; x++) {
-      for (let y = 1; y < GRID_HEIGHT - 1; y++) {
-        initialDots.add(`${x},${y}`);
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+      for (let x = 0; x < GRID_WIDTH; x++) {
+        if (!isWall(x, y)) {
+          initialDots.add(`${x},${y}`);
+        }
       }
     }
     setDots(initialDots);
@@ -59,7 +101,7 @@ export default function PacmanGame() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameStarted]);
 
-  // Game loop with smooth animation
+  // Game loop with smooth animation and collision detection
   useEffect(() => {
     if (!gameStarted) return;
 
@@ -72,12 +114,13 @@ export default function PacmanGame() {
           const newX = prev.x + direction.x;
           const newY = prev.y + direction.y;
 
-          // Keep within bounds
-          const boundedX = Math.max(0, Math.min(GRID_WIDTH - 1, newX));
-          const boundedY = Math.max(0, Math.min(GRID_HEIGHT - 1, newY));
+          // Check for wall collision - if wall, don't move
+          if (isWall(newX, newY)) {
+            return prev; // Stay in current position
+          }
 
           // Check if dot exists at new position
-          const dotKey = `${boundedX},${boundedY}`;
+          const dotKey = `${newX},${newY}`;
           if (dots.has(dotKey)) {
             setDots(prev => {
               const newDots = new Set(prev);
@@ -87,7 +130,7 @@ export default function PacmanGame() {
             setScore(s => s + 10);
           }
 
-          return { x: boundedX, y: boundedY };
+          return { x: newX, y: newY };
         });
         
         lastMoveTime.current = timestamp;
@@ -116,9 +159,26 @@ export default function PacmanGame() {
     canvas.width = GRID_WIDTH * CELL_SIZE;
     canvas.height = GRID_HEIGHT * CELL_SIZE;
 
-    // Draw game board
+    // Draw game board background
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw maze walls
+    ctx.fillStyle = '#2121DE';
+    ctx.strokeStyle = '#2121DE';
+    ctx.lineWidth = 2;
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+      for (let x = 0; x < GRID_WIDTH; x++) {
+        if (isWall(x, y)) {
+          ctx.fillRect(
+            x * CELL_SIZE,
+            y * CELL_SIZE,
+            CELL_SIZE,
+            CELL_SIZE
+          );
+        }
+      }
+    }
 
     // Draw dots
     ctx.fillStyle = '#FFB897';
@@ -177,4 +237,7 @@ export default function PacmanGame() {
     </div>
   );
 }
+
+
+
 

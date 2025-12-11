@@ -13,7 +13,7 @@ export default function PacmanGame() {
   const [direction, setDirection] = useState({ x: 0, y: 0 });
   const [score, setScore] = useState(0);
   const [dots, setDots] = useState<Set<string>>(new Set());
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
   const lastMoveTime = useRef<number>(0);
 
   // Initialize dots
@@ -177,10 +177,4 @@ export default function PacmanGame() {
     </div>
   );
 }
-
-
-
-
-
-
 

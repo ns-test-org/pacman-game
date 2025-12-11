@@ -11,6 +11,7 @@ export default function PacmanGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [pacmanPos, setPacmanPos] = useState({ x: 1, y: 1 });
   const [direction, setDirection] = useState({ x: 0, y: 0 });
+  const [facingAngle, setFacingAngle] = useState(0); // Angle in radians for Pacman's mouth
   const [score, setScore] = useState(0);
   const [dots, setDots] = useState<Set<string>>(new Set());
   const animationRef = useRef<number>(0);
@@ -42,15 +43,19 @@ export default function PacmanGame() {
       switch (e.key) {
         case 'ArrowUp':
           setDirection({ x: 0, y: -1 });
+          setFacingAngle(Math.PI * 1.5); // Face up
           break;
         case 'ArrowDown':
           setDirection({ x: 0, y: 1 });
+          setFacingAngle(Math.PI * 0.5); // Face down
           break;
         case 'ArrowLeft':
           setDirection({ x: -1, y: 0 });
+          setFacingAngle(Math.PI); // Face left
           break;
         case 'ArrowRight':
           setDirection({ x: 1, y: 0 });
+          setFacingAngle(0); // Face right
           break;
       }
     };
@@ -138,17 +143,19 @@ export default function PacmanGame() {
     // Draw Pacman
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
+    const centerX = pacmanPos.x * CELL_SIZE + CELL_SIZE / 2;
+    const centerY = pacmanPos.y * CELL_SIZE + CELL_SIZE / 2;
+    const radius = CELL_SIZE / 2 - 2;
+    const mouthAngle = 0.2 * Math.PI; // Mouth opening angle
+    
     ctx.arc(
-      pacmanPos.x * CELL_SIZE + CELL_SIZE / 2,
-      pacmanPos.y * CELL_SIZE + CELL_SIZE / 2,
-      CELL_SIZE / 2 - 2,
-      0.2 * Math.PI,
-      1.8 * Math.PI
+      centerX,
+      centerY,
+      radius,
+      facingAngle + mouthAngle,
+      facingAngle + (2 * Math.PI - mouthAngle)
     );
-    ctx.lineTo(
-      pacmanPos.x * CELL_SIZE + CELL_SIZE / 2,
-      pacmanPos.y * CELL_SIZE + CELL_SIZE / 2
-    );
+    ctx.lineTo(centerX, centerY);
     ctx.fill();
 
     // Draw start overlay
@@ -160,7 +167,7 @@ export default function PacmanGame() {
       ctx.textAlign = 'center';
       ctx.fillText('Press SPACE to Start', canvas.width / 2, canvas.height / 2);
     }
-  }, [pacmanPos, gameStarted, dots]);
+  }, [pacmanPos, gameStarted, dots, facingAngle]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
@@ -177,4 +184,8 @@ export default function PacmanGame() {
     </div>
   );
 }
+
+
+
+
 

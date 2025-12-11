@@ -10,6 +10,7 @@ type Ghost = {
   x: number;
   y: number;
   color: string;
+  originalColor: string;
   name: string;
   mode: 'chase' | 'scatter' | 'frightened';
 };
@@ -63,10 +64,10 @@ export default function PacmanGame() {
     
     // Initialize ghosts in ghost house
     setGhosts([
-      { x: ghostHouseX - 1, y: ghostHouseY, color: '#FF0000', name: 'Blinky', mode: 'chase' },
-      { x: ghostHouseX + 1, y: ghostHouseY, color: '#FFB8FF', name: 'Pinky', mode: 'chase' },
-      { x: ghostHouseX, y: ghostHouseY - 1, color: '#00FFFF', name: 'Inky', mode: 'chase' },
-      { x: ghostHouseX, y: ghostHouseY + 1, color: '#FFB851', name: 'Clyde', mode: 'chase' },
+      { x: ghostHouseX - 1, y: ghostHouseY, color: '#FF0000', originalColor: '#FF0000', name: 'Blinky', mode: 'chase' },
+      { x: ghostHouseX + 1, y: ghostHouseY, color: '#FFB8FF', originalColor: '#FFB8FF', name: 'Pinky', mode: 'chase' },
+      { x: ghostHouseX, y: ghostHouseY - 1, color: '#00FFFF', originalColor: '#00FFFF', name: 'Inky', mode: 'chase' },
+      { x: ghostHouseX, y: ghostHouseY + 1, color: '#FFB851', originalColor: '#FFB851', name: 'Clyde', mode: 'chase' },
     ]);
   }, []);
 
@@ -111,10 +112,10 @@ export default function PacmanGame() {
         setDots(initialDots);
         setPowerPellets(initialPowerPellets);
         setGhosts([
-          { x: ghostHouseX - 1, y: ghostHouseY, color: '#FF0000', name: 'Blinky', mode: 'chase' },
-          { x: ghostHouseX + 1, y: ghostHouseY, color: '#FFB8FF', name: 'Pinky', mode: 'chase' },
-          { x: ghostHouseX, y: ghostHouseY - 1, color: '#00FFFF', name: 'Inky', mode: 'chase' },
-          { x: ghostHouseX, y: ghostHouseY + 1, color: '#FFB851', name: 'Clyde', mode: 'chase' },
+          { x: ghostHouseX - 1, y: ghostHouseY, color: '#FF0000', originalColor: '#FF0000', name: 'Blinky', mode: 'chase' },
+          { x: ghostHouseX + 1, y: ghostHouseY, color: '#FFB8FF', originalColor: '#FFB8FF', name: 'Pinky', mode: 'chase' },
+          { x: ghostHouseX, y: ghostHouseY - 1, color: '#00FFFF', originalColor: '#00FFFF', name: 'Inky', mode: 'chase' },
+          { x: ghostHouseX, y: ghostHouseY + 1, color: '#FFB851', originalColor: '#FFB851', name: 'Clyde', mode: 'chase' },
         ]);
         return;
       }
@@ -257,7 +258,7 @@ export default function PacmanGame() {
             
             // Activate frightened mode
             setFrightenedMode(true);
-            setGhosts(prev => prev.map(g => ({ ...g, mode: 'frightened' as const })));
+            setGhosts(prev => prev.map(g => ({ ...g, mode: 'frightened' as const, color: '#0000FF' })));
             
             // Clear existing timer
             if (frightenedTimer.current) {
@@ -267,7 +268,7 @@ export default function PacmanGame() {
             // Set timer to end frightened mode (7 seconds)
             frightenedTimer.current = setTimeout(() => {
               setFrightenedMode(false);
-              setGhosts(prev => prev.map(g => ({ ...g, mode: 'chase' as const })));
+              setGhosts(prev => prev.map(g => ({ ...g, mode: 'chase' as const, color: g.originalColor })));
             }, 7000); // Ghosts turn back to original colors after 7 seconds
           }
 
@@ -300,7 +301,7 @@ export default function PacmanGame() {
             const ghostHouseY = Math.floor(GRID_HEIGHT / 2);
             setGhosts(prev => prev.map(g => 
               g.name === ghost.name 
-                ? { ...g, x: ghostHouseX, y: ghostHouseY }
+                ? { ...g, x: ghostHouseX, y: ghostHouseY, mode: 'chase' as const, color: g.originalColor }
                 : g
             ));
           } else {
@@ -384,11 +385,7 @@ export default function PacmanGame() {
 
     // Draw ghosts
     ghosts.forEach(ghost => {
-      if (frightenedMode) {
-        ctx.fillStyle = '#0000FF';
-      } else {
-        ctx.fillStyle = ghost.color;
-      }
+      ctx.fillStyle = ghost.color;
       
       // Ghost body
       ctx.beginPath();
@@ -522,6 +519,12 @@ export default function PacmanGame() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 

@@ -15,6 +15,15 @@ type Ghost = {
   mode: 'chase' | 'scatter' | 'frightened';
 };
 
+type Confetti = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+  life: number;
+};
+
 export default function PacmanGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -26,10 +35,12 @@ export default function PacmanGame() {
   const [powerPellets, setPowerPellets] = useState<Set<string>>(new Set());
   const [ghosts, setGhosts] = useState<Ghost[]>([]);
   const [frightenedMode, setFrightenedMode] = useState(false);
+  const [confetti, setConfetti] = useState<Confetti[]>([]);
   const animationRef = useRef<number>(0);
   const lastMoveTime = useRef<number>(0);
   const lastGhostMoveTime = useRef<number>(0);
   const frightenedTimer = useRef<NodeJS.Timeout | null>(null);
+  const confettiTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize dots, power pellets, and ghosts
   useEffect(() => {
@@ -69,6 +80,50 @@ export default function PacmanGame() {
       { x: ghostHouseX, y: ghostHouseY - 1, color: '#00FFFF', originalColor: '#00FFFF', name: 'Inky', mode: 'chase' },
       { x: ghostHouseX, y: ghostHouseY + 1, color: '#FFB851', originalColor: '#FFB851', name: 'Clyde', mode: 'chase' },
     ]);
+    
+    // Start confetti explosion timer
+    const startConfettiTimer = () => {
+      confettiTimer.current = setTimeout(() => {
+        // Pick a random ghost to explode
+        setGhosts(currentGhosts => {
+          if (currentGhosts.length === 0) return currentGhosts;
+          
+          const randomIndex = Math.floor(Math.random() * currentGhosts.length);
+          const explodingGhost = currentGhosts[randomIndex];
+          
+          // Create confetti particles
+          const newConfetti: Confetti[] = [];
+          const colors = ['#FF0000', '#FFB8FF', '#00FFFF', '#FFB851', '#FFFF00', '#00FF00', '#FF00FF'];
+          
+          for (let i = 0; i < 30; i++) {
+            const angle = (Math.PI * 2 * i) / 30;
+            const speed = 2 + Math.random() * 3;
+            newConfetti.push({
+              x: explodingGhost.x * CELL_SIZE + CELL_SIZE / 2,
+              y: explodingGhost.y * CELL_SIZE + CELL_SIZE / 2,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              color: colors[Math.floor(Math.random() * colors.length)],
+              life: 60, // frames
+            });
+          }
+          
+          setConfetti(newConfetti);
+          
+          return currentGhosts;
+        });
+        
+        startConfettiTimer(); // Schedule next explosion
+      }, 5000); // Every 5 seconds
+    };
+    
+    startConfettiTimer();
+    
+    return () => {
+      if (confettiTimer.current) {
+        clearTimeout(confettiTimer.current);
+      }
+    };
   }, []);
 
   // Handle keyboard input
@@ -226,6 +281,19 @@ export default function PacmanGame() {
       const deltaTime = timestamp - lastMoveTime.current;
       const ghostDeltaTime = timestamp - lastGhostMoveTime.current;
       
+      // Update confetti
+      setConfetti(prev => {
+        return prev
+          .map(c => ({
+            ...c,
+            x: c.x + c.vx,
+            y: c.y + c.vy,
+            vy: c.vy + 0.2, // gravity
+            life: c.life - 1,
+          }))
+          .filter(c => c.life > 0);
+      });
+      
       // Move Pacman every 150ms
       if (deltaTime > 150) {
         setPacmanPos(prev => {
@@ -324,7 +392,7 @@ export default function PacmanGame() {
         clearTimeout(frightenedTimer.current);
       }
     };
-  }, [gameStarted, gameOver, direction, dots, powerPellets, ghosts, pacmanPos, frightenedMode]);
+  }, [gameStarted, gameOver, direction, dots, powerPellets, ghosts, pacmanPos, frightenedMode, confetti]);
 
   // Render canvas
   useEffect(() => {
@@ -386,45 +454,121 @@ export default function PacmanGame() {
 
     // Draw ghosts
     ghosts.forEach(ghost => {
-      ctx.fillStyle = ghost.color;
+      const centerX = ghost.x * CELL_SIZE + CELL_SIZE / 2;
+      const centerY = ghost.y * CELL_SIZE + CELL_SIZE / 2;
       
-      // Ghost body
-      ctx.beginPath();
-      ctx.arc(
-        ghost.x * CELL_SIZE + CELL_SIZE / 2,
-        ghost.y * CELL_SIZE + CELL_SIZE / 2,
-        CELL_SIZE / 2 - 2,
-        Math.PI,
-        0
-      );
-      ctx.lineTo(
-        ghost.x * CELL_SIZE + CELL_SIZE - 2,
-        ghost.y * CELL_SIZE + CELL_SIZE - 2
-      );
-      ctx.lineTo(
-        ghost.x * CELL_SIZE + CELL_SIZE - 6,
-        ghost.y * CELL_SIZE + CELL_SIZE / 2 + 4
-      );
-      ctx.lineTo(
-        ghost.x * CELL_SIZE + CELL_SIZE / 2,
-        ghost.y * CELL_SIZE + CELL_SIZE - 2
-      );
-      ctx.lineTo(
-        ghost.x * CELL_SIZE + 6,
-        ghost.y * CELL_SIZE + CELL_SIZE / 2 + 4
-      );
-      ctx.lineTo(
-        ghost.x * CELL_SIZE + 2,
-        ghost.y * CELL_SIZE + CELL_SIZE - 2
-      );
-      ctx.closePath();
-      ctx.fill();
-      
-      // Draw unique hats for each ghost
-      if (ghost.mode !== 'frightened') {
-        const centerX = ghost.x * CELL_SIZE + CELL_SIZE / 2;
-        const centerY = ghost.y * CELL_SIZE + CELL_SIZE / 2;
+      // Special rendering for Clyde as a dimetrodon
+      if (ghost.name === 'Clyde') {
+        ctx.fillStyle = ghost.color;
         
+        // Dimetrodon body (elongated oval)
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY + 2, 12, 8, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Head
+        ctx.beginPath();
+        ctx.ellipse(centerX + 10, centerY, 6, 5, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Legs
+        ctx.fillRect(centerX - 8, centerY + 8, 3, 6);
+        ctx.fillRect(centerX - 2, centerY + 8, 3, 6);
+        ctx.fillRect(centerX + 4, centerY + 8, 3, 6);
+        ctx.fillRect(centerX + 10, centerY + 8, 3, 6);
+        
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(centerX - 12, centerY + 2);
+        ctx.lineTo(centerX - 18, centerY);
+        ctx.lineTo(centerX - 12, centerY - 1);
+        ctx.fill();
+        
+        // Iconic sail on back
+        if (ghost.mode !== 'frightened') {
+          ctx.fillStyle = '#8B4513'; // Brown sail
+          ctx.beginPath();
+          ctx.moveTo(centerX - 8, centerY);
+          ctx.lineTo(centerX - 5, centerY - 15);
+          ctx.lineTo(centerX, centerY - 18);
+          ctx.lineTo(centerX + 5, centerY - 15);
+          ctx.lineTo(centerX + 8, centerY);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Sail details (spines)
+          ctx.strokeStyle = '#654321';
+          ctx.lineWidth = 1;
+          for (let i = -6; i <= 6; i += 3) {
+            ctx.beginPath();
+            ctx.moveTo(centerX + i, centerY);
+            ctx.lineTo(centerX + i, centerY - 12 - Math.abs(i));
+            ctx.stroke();
+          }
+        } else {
+          // Blue sail when frightened
+          ctx.fillStyle = '#0000FF';
+          ctx.beginPath();
+          ctx.moveTo(centerX - 8, centerY);
+          ctx.lineTo(centerX - 5, centerY - 15);
+          ctx.lineTo(centerX, centerY - 18);
+          ctx.lineTo(centerX + 5, centerY - 15);
+          ctx.lineTo(centerX + 8, centerY);
+          ctx.closePath();
+          ctx.fill();
+        }
+        
+        // Eye
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath();
+        ctx.arc(centerX + 12, centerY - 1, 2, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        if (ghost.mode !== 'frightened') {
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(centerX + 12, centerY - 1, 1, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      } else {
+        // Regular ghost rendering for other ghosts
+        ctx.fillStyle = ghost.color;
+        
+        // Ghost body
+        ctx.beginPath();
+        ctx.arc(
+          ghost.x * CELL_SIZE + CELL_SIZE / 2,
+          ghost.y * CELL_SIZE + CELL_SIZE / 2,
+          CELL_SIZE / 2 - 2,
+          Math.PI,
+          0
+        );
+        ctx.lineTo(
+          ghost.x * CELL_SIZE + CELL_SIZE - 2,
+          ghost.y * CELL_SIZE + CELL_SIZE - 2
+        );
+        ctx.lineTo(
+          ghost.x * CELL_SIZE + CELL_SIZE - 6,
+          ghost.y * CELL_SIZE + CELL_SIZE / 2 + 4
+        );
+        ctx.lineTo(
+          ghost.x * CELL_SIZE + CELL_SIZE / 2,
+          ghost.y * CELL_SIZE + CELL_SIZE - 2
+        );
+        ctx.lineTo(
+          ghost.x * CELL_SIZE + 6,
+          ghost.y * CELL_SIZE + CELL_SIZE / 2 + 4
+        );
+        ctx.lineTo(
+          ghost.x * CELL_SIZE + 2,
+          ghost.y * CELL_SIZE + CELL_SIZE - 2
+        );
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      // Draw unique hats for regular ghosts (not Clyde)
+      if (ghost.mode !== 'frightened' && ghost.name !== 'Clyde') {
         switch (ghost.name) {
           case 'Blinky': // Crown
             ctx.fillStyle = '#FFD700';
@@ -459,54 +603,48 @@ export default function PacmanGame() {
             ctx.lineWidth = 1;
             ctx.strokeRect(centerX - 5, centerY - 15, 10, 1);
             break;
-            
-          case 'Clyde': // Baseball cap
-            ctx.fillStyle = '#FF8C00';
-            ctx.beginPath();
-            ctx.ellipse(centerX, centerY - 11, 8, 4, 0, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.fillRect(centerX - 2, centerY - 16, 8, 5);
-            break;
         }
       }
       
-      // Ghost eyes
-      ctx.fillStyle = '#FFF';
-      ctx.beginPath();
-      ctx.arc(
-        ghost.x * CELL_SIZE + CELL_SIZE / 2 - 5,
-        ghost.y * CELL_SIZE + CELL_SIZE / 2 - 3,
-        3,
-        0,
-        2 * Math.PI
-      );
-      ctx.arc(
-        ghost.x * CELL_SIZE + CELL_SIZE / 2 + 5,
-        ghost.y * CELL_SIZE + CELL_SIZE / 2 - 3,
-        3,
-        0,
-        2 * Math.PI
-      );
-      ctx.fill();
-      
-      if (ghost.mode !== 'frightened') {
-        ctx.fillStyle = '#000';
+      // Ghost eyes (not for Clyde - he has his own eye)
+      if (ghost.name !== 'Clyde') {
+        ctx.fillStyle = '#FFF';
         ctx.beginPath();
         ctx.arc(
           ghost.x * CELL_SIZE + CELL_SIZE / 2 - 5,
           ghost.y * CELL_SIZE + CELL_SIZE / 2 - 3,
-          1.5,
+          3,
           0,
           2 * Math.PI
         );
         ctx.arc(
           ghost.x * CELL_SIZE + CELL_SIZE / 2 + 5,
           ghost.y * CELL_SIZE + CELL_SIZE / 2 - 3,
-          1.5,
+          3,
           0,
           2 * Math.PI
         );
         ctx.fill();
+        
+        if (ghost.mode !== 'frightened') {
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(
+            ghost.x * CELL_SIZE + CELL_SIZE / 2 - 5,
+            ghost.y * CELL_SIZE + CELL_SIZE / 2 - 3,
+            1.5,
+            0,
+            2 * Math.PI
+          );
+          ctx.arc(
+            ghost.x * CELL_SIZE + CELL_SIZE / 2 + 5,
+            ghost.y * CELL_SIZE + CELL_SIZE / 2 - 3,
+            1.5,
+            0,
+            2 * Math.PI
+          );
+          ctx.fill();
+        }
       }
     });
 
@@ -570,6 +708,13 @@ export default function PacmanGame() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

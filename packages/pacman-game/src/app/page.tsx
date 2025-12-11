@@ -1,9 +1,52 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function PacmanGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [pacmanPos, setPacmanPos] = useState({ x: 300, y: 300 });
+
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !gameStarted) {
+        setGameStarted(true);
+        return;
+      }
+
+      if (!gameStarted) return;
+
+      setPacmanPos(prev => {
+        let newX = prev.x;
+        let newY = prev.y;
+
+        switch (e.key) {
+          case 'ArrowUp':
+            newY = prev.y - 20;
+            break;
+          case 'ArrowDown':
+            newY = prev.y + 20;
+            break;
+          case 'ArrowLeft':
+            newX = prev.x - 20;
+            break;
+          case 'ArrowRight':
+            newX = prev.x + 20;
+            break;
+        }
+
+        // Keep Pacman within bounds
+        newX = Math.max(20, Math.min(580, newX));
+        newY = Math.max(20, Math.min(580, newY));
+
+        return { x: newX, y: newY };
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameStarted]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,8 +66,8 @@ export default function PacmanGame() {
     // Draw Pacman
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
-    ctx.arc(300, 300, 20, 0.2 * Math.PI, 1.8 * Math.PI);
-    ctx.lineTo(300, 300);
+    ctx.arc(pacmanPos.x, pacmanPos.y, 20, 0.2 * Math.PI, 1.8 * Math.PI);
+    ctx.lineTo(pacmanPos.x, pacmanPos.y);
     ctx.fill();
 
     // Draw some dots
@@ -36,7 +79,17 @@ export default function PacmanGame() {
         ctx.fill();
       }
     }
-  }, []);
+
+    // Draw start overlay
+    if (!gameStarted) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#FFF';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Press SPACE to Start', canvas.width / 2, canvas.height / 2);
+    }
+  }, [pacmanPos, gameStarted]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
@@ -52,5 +105,6 @@ export default function PacmanGame() {
     </div>
   );
 }
+
 
 

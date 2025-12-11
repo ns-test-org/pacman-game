@@ -264,11 +264,11 @@ export default function PacmanGame() {
               clearTimeout(frightenedTimer.current);
             }
             
-            // Set timer to end frightened mode
+            // Set timer to end frightened mode (7 seconds)
             frightenedTimer.current = setTimeout(() => {
               setFrightenedMode(false);
               setGhosts(prev => prev.map(g => ({ ...g, mode: 'chase' as const })));
-            }, 7000);
+            }, 7000); // Ghosts turn back to original colors after 7 seconds
           }
 
           return { x: boundedX, y: boundedY };
@@ -522,6 +522,7 @@ export default function PacmanGame() {
     </div>
   );
 }
+
 
 
 
